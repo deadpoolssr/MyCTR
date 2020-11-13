@@ -1,0 +1,4 @@
+{
+    "python.pythonPath": "/data/LeiLixiang/anaconda3/envs/torch/bin/python",
+    "python.linting.pylintArgs": ["--generate-members"]
+}
