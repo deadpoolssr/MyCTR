@@ -286,7 +286,6 @@ class BaseModel(nn.Module):
     def fit_one_epoch(self, x, y, batch_size=None, shuffle=True, verbose=0, epoch= 0, validation_data=None):
         if isinstance(x, dict):
             x = [x[feature] for feature in self.feature_index]
-        print(len(x))
         for i in range(len(x)):
             if len(x[i].shape) == 1:
                 x[i] = np.expand_dims(x[i], axis=1)
@@ -317,13 +316,12 @@ class BaseModel(nn.Module):
                     x = x_train.to(self.device).float()
                     y = y_train.to(self.device).float()
 
-                    y_pred = model(x).squeeze()
+                    y_pred = model((x, epoch)).squeeze()
                     optim.zero_grad()
                     loss = loss_func(y_pred, y.squeeze(), reduction='sum')
                     reg_loss = self.get_regularization_loss()
 
-                    total_loss = loss + reg_loss + self.aux_l oss
-
+                    total_loss = loss + reg_loss + self.aux_loss
                     loss_epoch += loss.item()
                     total_loss_epoch += total_loss.item()
                     total_loss.backward(retain_graph=True)
@@ -396,7 +394,10 @@ class BaseModel(nn.Module):
         with torch.no_grad():
             for index, x_test in enumerate(test_loader):
                 x = x_test[0].to(self.device).float()
-                y_pred = model(x).cpu().data.numpy()  # .squeeze()
+                if epoch==0:
+                    y_pred = model((x, 0)).cpu().data.numpy()
+                else:
+                    y_pred = model((x, 2)).cpu().data.numpy()  # .squeeze()
                 pred_ans.append(y_pred)
 
         return np.concatenate(pred_ans).astype("float64")

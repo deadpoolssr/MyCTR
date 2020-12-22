@@ -8,7 +8,7 @@ Reference:
 import torch
 import torch.nn as nn
 
-from .basemodel import BaseModel
+from .mybasemodel import BaseModel
 from ..inputs import combined_dnn_input
 from ..layers import DNN, concat_fun, InteractingLayer, KNNAttentionLayer
 
@@ -45,7 +45,7 @@ class MyAutoInt(BaseModel):
         super(MyAutoInt, self).__init__(linear_feature_columns, dnn_feature_columns, l2_reg_linear=0,
                                       l2_reg_embedding=l2_reg_embedding, init_std=init_std, seed=seed, task=task,
                                       device=device)
-        self.knnLayer = KNNAttentionLayer(100, self.embedding_dict, linear_feature_columns, self.feature_index)
+        self.knnLayer = KNNAttentionLayer(100, self.embedding_dict, linear_feature_columns, self.feature_index, device)
         if len(dnn_hidden_units) <= 0 and att_layer_num <= 0:
             raise ValueError("Either hidden_layer or att_layer_num must > 0")
         self.use_dnn = len(dnn_feature_columns) > 0 and len(dnn_hidden_units) > 0
@@ -77,11 +77,14 @@ class MyAutoInt(BaseModel):
         self.to(device)
 
     def forward(self, X):
-        att_input = self.knnLayer(X)
+        X, epoch = X
         sparse_embedding_list, dense_value_list = self.input_from_feature_columns(X, self.dnn_feature_columns,
-                                                                                  self.embedding_dict)
+                                                                                 self.embedding_dict)
+        if epoch>0:
+            att_input = self.knnLayer(X)
+        else :
+            att_input = concat_fun(sparse_embedding_list, axis=1)
         logit = self.linear_model(X)
-        # att_input = concat_fun(sparse_embedding_list, axis=1)
         
         for layer in self.int_layers:
             att_input = layer(att_input)
